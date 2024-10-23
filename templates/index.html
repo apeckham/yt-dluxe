@@ -145,7 +145,76 @@
     </div>
 
     <script>
-        // Script remains exactly the same as before
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('downloadManager', () => ({
+                downloads: [],
+                formData: {
+                    url: '',
+                    format: 'best',
+                    extractAudio: false,
+                    audioFormat: 'mp3'
+                },
+                error: null,
+                isSubmitting: false,
+
+                init() {
+                    this.startStatusUpdates();
+                },
+
+                async submitDownload() {
+                    this.error = null;
+                    this.isSubmitting = true;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('url', this.formData.url);
+                        formData.append('format', this.formData.format);
+                        formData.append('extract_audio', this.formData.extractAudio);
+                        formData.append('audio_format', this.formData.audioFormat);
+
+                        const response = await fetch('/submit', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.error || 'Error submitting download');
+                        }
+
+                        this.formData.url = '';
+                    } catch (error) {
+                        this.error = error.message;
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                async updateStatus() {
+                    try {
+                        const response = await fetch('/status');
+                        const data = await response.json();
+                        this.downloads = data.downloads;
+                    } catch (error) {
+                        console.error('Error fetching status:', error);
+                    }
+                },
+
+                async clearHistory() {
+                    try {
+                        await fetch('/clear-history', { method: 'POST' });
+                        this.updateStatus();
+                    } catch (error) {
+                        console.error('Error clearing history:', error);
+                    }
+                },
+
+                startStatusUpdates() {
+                    this.updateStatus();
+                    setInterval(() => this.updateStatus(), 1000);
+                }
+            }));
+        });
     </script>
 </body>
 </html>
