@@ -10,43 +10,71 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:18.04
     
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install system dependencies
-      run: |
-        apt-get update
-        apt-get install -y python3 python3-pip
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-    - name: Install Python dependencies
+    - name: Build in Docker
       run: |
-        python3 -m pip install --upgrade pip
-        pip3 install flask yt-dlp pyinstaller
-
-    - name: Create temp resources directory
-      run: |
-        mkdir -p temp_resources
-        cp -r templates temp_resources/
-        cp -r static temp_resources/
-
-    - name: Build with PyInstaller
-      run: |
-        python3 -m PyInstaller --onefile \
-          --name "yt-dluxe" \
-          --add-data "temp_resources/templates:templates" \
-          --add-data "temp_resources/static:static" \
-          --clean \
-          --noconsole \
-          app.py
+        # Create Dockerfile
+        cat > Dockerfile << 'EOF'
+        FROM ubuntu:18.04
+        
+        # Install system dependencies
+        RUN apt-get update && apt-get install -y \
+            python3 \
+            python3-pip \
+            && rm -rf /var/lib/apt/lists/*
+        
+        # Set working directory
+        WORKDIR /app
+        
+        # Copy application files
+        COPY . .
+        
+        # Install Python dependencies
+        RUN python3 -m pip install --upgrade pip && \
+            pip3 install flask yt-dlp pyinstaller
+        
+        # Create temp resources directory
+        RUN mkdir -p temp_resources && \
+            cp -r templates temp_resources/ && \
+            cp -r static temp_resources/
+        
+        # Build with PyInstaller
+        RUN python3 -m PyInstaller --onefile \
+            --name "yt-dluxe" \
+            --add-data "temp_resources/templates:templates" \
+            --add-data "temp_resources/static:static" \
+            --clean \
+            --noconsole \
+            app.py
+        EOF
+        
+        # Build the Docker image
+        docker build -t yt-dluxe-builder .
+        
+        # Copy the built binary out of the container
+        docker create --name temp yt-dluxe-builder
+        docker cp temp:/app/dist/yt-dluxe ./yt-dluxe
+        docker rm temp
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/yt-dluxe
+        files: yt-dluxe
         name: Release ${{ github.ref_name }}
+        body: |
+          Built with Ubuntu 18.04 (GLIBC 2.27)
+          
+          System Requirements:
+          - Linux with GLIBC 2.27 or later
+          - Tested on Ubuntu 18.04 LTS
+          
+          ${{ github.event.release.body }}
         draft: false
         prerelease: false
         generate_release_notes: true
