@@ -161,6 +161,10 @@ def clear_history():
 
 if __name__ == '__main__':
     import argparse
+
+    if getattr(sys, 'frozen', False):
+        sys.argv = sys.argv[:1] + sys.argv[1:]
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--download-dir', default='.', help='Directory to save downloads (default: current directory)')
     parser.add_argument('--port', type=int, default=5000, help='Port to run the server on (default: 5000)')
