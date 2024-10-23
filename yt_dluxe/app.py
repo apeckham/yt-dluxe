@@ -7,9 +7,6 @@ import sys
 from urllib.parse import urlparse
 from datetime import datetime
 
-cli = sys.modules['flask.cli']
-cli.show_server_banner = lambda *args: None
-
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # Global variables
@@ -166,6 +163,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--download-dir', default='.', help='Directory to save downloads (default: current directory)')
     parser.add_argument('--port', type=int, default=5000, help='Port to run the server on (default: 5000)')
+    parser.add_argument('--host', default='127.0.0.1', help='Host to run the server on (default: localhost)')
     args = parser.parse_args()
 
     global DOWNLOAD_DIR
@@ -173,4 +171,4 @@ def main():
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     
     debug_mode = False
-    app.run(debug=debug_mode, port=args.port)
+    app.run(debug=debug_mode, port=args.port, host=args.host)
