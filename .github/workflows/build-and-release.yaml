@@ -37,7 +37,7 @@ jobs:
         
         # Install Python dependencies
         RUN python3 -m pip install --upgrade pip && \
-            pip3 install flask yt-dlp pyinstaller
+            pip3 install flask==3.0.3 yt-dlp==2024.10.22 pyinstaller==6.11.0
         
         # Create temp resources directory
         RUN mkdir -p temp_resources && \
