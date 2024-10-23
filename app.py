@@ -6,7 +6,7 @@ import queue
 from urllib.parse import urlparse
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # Global variables
 download_queue = queue.Queue()
