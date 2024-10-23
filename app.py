@@ -3,6 +3,7 @@ import yt_dlp
 import threading
 import os
 import queue
+import sys
 from urllib.parse import urlparse
 from datetime import datetime
 
@@ -160,7 +161,7 @@ def clear_history():
     return jsonify({'message': 'History cleared'})
 
 if __name__ == '__main__':
-    import argparse
+    import argparse, sys
 
     if getattr(sys, 'frozen', False):
         sys.argv = sys.argv[:1] + sys.argv[1:]
@@ -173,4 +174,5 @@ if __name__ == '__main__':
     DOWNLOAD_DIR = os.path.abspath(args.download_dir)
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     
-    app.run(debug=True, port=args.port)
+    debug_mode = False if getattr(sys, 'frozen', False) else True
+    app.run(debug=debug_mode, port=args.port)
