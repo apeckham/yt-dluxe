@@ -1,5 +1,7 @@
 # YT-DLuxe
 
+[![Build and Release](https://github.com/apeckham/yt-dluxe/actions/workflows/build-and-release.yaml/badge.svg)](https://github.com/apeckham/yt-dluxe/actions/workflows/build-and-release.yaml)
+
 A sleek web interface for yt-dlp, making it easy to manage multiple video downloads simultaneously.
 
 ![YT-DLuxe Screenshot](screenshot.png)
