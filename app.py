@@ -169,8 +169,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--download-dir', default='.', help='Directory to save downloads (default: current directory)')
     parser.add_argument('--port', type=int, default=5000, help='Port to run the server on (default: 5000)')
-    args = parser.parse_args()
-    
+    args, unknown = parser.parse_known_args()
+
     DOWNLOAD_DIR = os.path.abspath(args.download_dir)
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     
