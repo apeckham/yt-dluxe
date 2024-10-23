@@ -1,0 +1,7 @@
+- Simultaneous downloads
+- Fix color of text while downloading
+- Retry button on errors
+- Clear button only clears history
+- Cancel active download
+- Support playlists
+- Dark mode
