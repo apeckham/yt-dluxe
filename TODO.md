@@ -5,3 +5,5 @@
 - Cancel active download
 - Support playlists
 - Dark mode
+- Quality preferences (1080p etc)
+- Extract subtitles
