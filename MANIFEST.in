@@ -1,0 +1,2 @@
+recursive-include yt_dluxe/static *
+recursive-include yt_dluxe/templates *
