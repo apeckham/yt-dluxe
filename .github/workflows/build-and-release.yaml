@@ -9,20 +9,22 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-18.04  # Changed to ubuntu-18.04 for older GLIBC
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:18.04
     
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'  # Using an even older Python version
-
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install flask yt-dlp pyinstaller
+        apt-get update
+        apt-get install -y python3 python3-pip
+
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        pip3 install flask yt-dlp pyinstaller
 
     - name: Create temp resources directory
       run: |
@@ -32,7 +34,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        python -m PyInstaller --onefile \
+        python3 -m PyInstaller --onefile \
           --name "yt-dluxe" \
           --add-data "temp_resources/templates:templates" \
           --add-data "temp_resources/static:static" \
