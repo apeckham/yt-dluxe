@@ -6,6 +6,9 @@ import queue
 from urllib.parse import urlparse
 from datetime import datetime
 
+cli = sys.modules['flask.cli']
+cli.show_server_banner = lambda *args: None
+
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # Global variables
