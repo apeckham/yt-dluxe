@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-20.04  # Changed from ubuntu-latest to ensure older GLIBC
+    runs-on: ubuntu-18.04  # Changed to ubuntu-18.04 for older GLIBC
     
     steps:
     - uses: actions/checkout@v2
@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10'  # Specify an older Python version too
+        python-version: '3.8'  # Using an even older Python version
 
     - name: Install dependencies
       run: |
