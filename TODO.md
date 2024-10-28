@@ -8,3 +8,4 @@
 - Quality preferences (1080p etc)
 - Extract subtitles
 - Directory structure based on channel/playlist
+- Toasts for errors
