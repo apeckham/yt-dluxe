@@ -133,9 +133,16 @@
                                          x-text="`${Math.round(download.progress)}%`">
                                     </div>
                                 </div>
-                                <small :class="download.error ? 'text-danger' : 'text-muted'"
-                                       x-text="download.error || download.status">
-                                </small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small :class="download.error ? 'text-danger' : 'text-muted'"
+                                           x-text="download.error || download.status">
+                                    </small>
+                                    <button x-show="download.error" 
+                                            @click="retryDownload(download)"
+                                            class="btn btn-sm btn-outline-primary">
+                                        Retry
+                                    </button>
+                                </div>
                             </div>
                         </template>
                     </div>
@@ -212,6 +219,30 @@
                 startStatusUpdates() {
                     this.updateStatus();
                     setInterval(() => this.updateStatus(), 1000);
+                },
+
+                async retryDownload(download) {
+                    this.error = null;
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('url', download.url);
+                        formData.append('format', 'best');
+                        formData.append('extract_audio', false);
+                        formData.append('audio_format', 'mp3');
+
+                        const response = await fetch('/submit', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.error || 'Error submitting download');
+                        }
+                    } catch (error) {
+                        console.error('Error retrying download:', error);
+                    }
                 }
             }));
         });
