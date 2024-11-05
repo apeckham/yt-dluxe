@@ -3,15 +3,15 @@ from setuptools import setup, find_packages
 setup(
     name="yt-dluxe",
     version="0.1",
-    packages=find_packages(),  # This should find your package directory
-    include_package_data=True,  # This ensures non-Python files are included
+    packages=find_packages(),
+    include_package_data=True,
     install_requires=[
-        "flask",
-        "yt-dlp",
+        "flask>=3.0.0",
+        "yt-dlp>=2023.0.0",
     ],
     entry_points={
         "console_scripts": [
-            "yt-dluxe=yt_dluxe.app:main",  # Adjust to point to your main function
+            "yt-dluxe=yt_dluxe.app:main",
         ],
     },
 )
