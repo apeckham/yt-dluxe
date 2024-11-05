@@ -14,6 +14,10 @@ download_queue = queue.Queue()
 active_downloads = {}
 download_history = []
 DOWNLOAD_DIR = '.'  # Default to current directory
+active_downloads_lock = threading.Lock()
+history_lock = threading.Lock()
+MAX_CONCURRENT_DOWNLOADS = 3  # Adjust this number as needed
+worker_threads = []
 
 class Download:
     def __init__(self, url, options):
@@ -35,20 +39,22 @@ def validate_url(url):
 
 def my_hook(d):
     if d['status'] == 'downloading':
-        download = active_downloads.get(d.get('info_dict', {}).get('webpage_url'))
-        if download:
-            # Calculate download progress
-            if 'total_bytes' in d:
-                download.progress = (d['downloaded_bytes'] / d['total_bytes']) * 100
-            elif 'total_bytes_estimate' in d:
-                download.progress = (d['downloaded_bytes'] / d['total_bytes_estimate']) * 100
-            if not download.title:  # Only set title if not set yet
-                download.title = d.get('info_dict', {}).get('title')
+        with active_downloads_lock:
+            download = active_downloads.get(d.get('info_dict', {}).get('webpage_url'))
+            if download:
+                # Calculate download progress
+                if 'total_bytes' in d:
+                    download.progress = (d['downloaded_bytes'] / d['total_bytes']) * 100
+                elif 'total_bytes_estimate' in d:
+                    download.progress = (d['downloaded_bytes'] / d['total_bytes_estimate']) * 100
+                if not download.title:  # Only set title if not set yet
+                    download.title = d.get('info_dict', {}).get('title')
     elif d['status'] == 'finished':
-        download = active_downloads.get(d.get('info_dict', {}).get('webpage_url'))
-        if download:
-            download.status = "processing"
-            download.progress = 100
+        with active_downloads_lock:
+            download = active_downloads.get(d.get('info_dict', {}).get('webpage_url'))
+            if download:
+                download.status = "processing"
+                download.progress = 100
 
 def download_worker():
     while True:
@@ -58,7 +64,8 @@ def download_worker():
         
         try:
             download.status = "downloading"
-            active_downloads[download.url] = download
+            with active_downloads_lock:
+                active_downloads[download.url] = download
             
             ydl_opts = {
                 'format': download.options.get('format', 'best'),
@@ -90,14 +97,12 @@ def download_worker():
                 download.title = "Download Failed"
         
         finally:
-            if download.url in active_downloads:
-                del active_downloads[download.url]
-            download_history.append(download)
+            with active_downloads_lock:
+                if download.url in active_downloads:
+                    del active_downloads[download.url]
+            with history_lock:
+                download_history.append(download)
             download_queue.task_done()
-
-# Start download worker thread
-download_thread = threading.Thread(target=download_worker, daemon=True)
-download_thread.start()
 
 @app.route('/')
 def index():
@@ -126,35 +131,38 @@ def submit_download():
 
 @app.route('/status')
 def get_status():
-    all_downloads = [{
-        'id': d.id,
-        'url': d.url,
-        'progress': d.progress,
-        'status': d.status,
-        'title': d.title,
-        'error': d.error,
-        'timestamp': d.timestamp,
-        'active': True
-    } for d in active_downloads.values()]
+    with active_downloads_lock:
+        active_downloads_list = [{
+            'id': d.id,
+            'url': d.url,
+            'progress': d.progress,
+            'status': d.status,
+            'title': d.title,
+            'error': d.error,
+            'timestamp': d.timestamp,
+            'active': True
+        } for d in active_downloads.values()]
     
-    all_downloads.extend([{
-        'id': d.id,
-        'url': d.url,
-        'status': d.status,
-        'title': d.title,
-        'error': d.error,
-        'timestamp': d.timestamp,
-        'active': False
-    } for d in download_history])
+    with history_lock:
+        history_list = [{
+            'id': d.id,
+            'url': d.url,
+            'status': d.status,
+            'title': d.title,
+            'error': d.error,
+            'timestamp': d.timestamp,
+            'active': False
+        } for d in download_history]
     
-    # Sort by timestamp, newest first
+    all_downloads = active_downloads_list + history_list
     all_downloads.sort(key=lambda x: x['timestamp'], reverse=True)
     
     return jsonify({'downloads': all_downloads})
 
 @app.route('/clear-history', methods=['POST'])
 def clear_history():
-    download_history.clear()
+    with history_lock:
+        download_history.clear()
     return jsonify({'message': 'History cleared'})
 
 def main():
@@ -164,11 +172,22 @@ def main():
     parser.add_argument('--download-dir', default='.', help='Directory to save downloads (default: current directory)')
     parser.add_argument('--port', type=int, default=5000, help='Port to run the server on (default: 5000)')
     parser.add_argument('--host', default='127.0.0.1', help='Host to run the server on (default: localhost)')
+    parser.add_argument('--workers', type=int, default=3, help='Number of concurrent downloads (default: 3)')
     args = parser.parse_args()
 
-    global DOWNLOAD_DIR
+    global DOWNLOAD_DIR, MAX_CONCURRENT_DOWNLOADS
     DOWNLOAD_DIR = os.path.abspath(args.download_dir)
+    MAX_CONCURRENT_DOWNLOADS = args.workers
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    
+    # Start multiple download worker threads
+    for _ in range(MAX_CONCURRENT_DOWNLOADS):
+        worker = threading.Thread(target=download_worker, daemon=True)
+        worker.start()
+        worker_threads.append(worker)
     
     debug_mode = False
     app.run(debug=debug_mode, port=args.port, host=args.host)
+
+if __name__ == '__main__':
+    main()
