@@ -13,6 +13,12 @@ A sleek web interface for yt-dlp, making it easy to manage multiple video downlo
 - 📱 Mobile-friendly design
 - 📝 Download history with clear functionality
 - 🎨 Visual status indicators
+- 🎬 Quality selection (4K, 1080p, 720p, etc.)
+- 📦 Format selection (MP4, MKV, WebM)
+- 💾 Custom download directory
+- 📋 Playlist support
+- 🔄 Auto-resume interrupted downloads
+- 📺 Thumbnail downloads
 
 ## License
 
