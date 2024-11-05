@@ -1,4 +1,3 @@
-- Simultaneous downloads
 - Retry button on errors
 - Clear button only clears history
 - Cancel active download
