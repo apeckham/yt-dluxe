@@ -1,5 +1,4 @@
-- Retry button on errors
-- Clear button only clears history
+- Retry should preserve quality and format
 - Cancel active download
 - Support playlists
 - Dark mode
