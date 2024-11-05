@@ -11,7 +11,7 @@
             transition: all 0.3s ease;
             border-left: 4px solid #dee2e6;
         }
-        .download-item.active {
+        .download-item.downloading {
             border-left-color: #0d6efd;
             background-color: rgba(13, 110, 253, 0.05);
         }
@@ -118,7 +118,7 @@
                         <template x-for="download in downloads" :key="download.id">
                             <div class="list-group-item download-item"
                                  :class="{
-                                     'active': download.active,
+                                     'downloading': download.active,
                                      'error': download.error,
                                      'completed': !download.active && !download.error
                                  }">
