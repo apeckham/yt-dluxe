@@ -104,7 +104,13 @@ class DownloadManager:
                 if download:
                     total_bytes = d.get('total_bytes') or d.get('total_bytes_estimate')
                     if total_bytes:
-                        download.progress = (d.get('downloaded_bytes', 0) / total_bytes) * 100
+                        if 'playlist_total' in d and d.get('playlist_total'):
+                            current = d.get('playlist_index', 1)
+                            current_video_progress = d.get('downloaded_bytes', 0) / total_bytes
+                            overall = ((current - 1) + current_video_progress) / d['playlist_total'] * 100
+                            download.progress = overall
+                        else:
+                            download.progress = (d.get('downloaded_bytes', 0) / total_bytes) * 100
                     if not download.title and isinstance(info_dict, dict):
                         download.title = info_dict.get('title')
         elif status == 'finished':
@@ -114,7 +120,10 @@ class DownloadManager:
                 download = self.active_downloads.get(webpage_url)
                 if download:
                     download.status = "completed"
-                    download.progress = 100
+                    if 'playlist_total' in d and d.get('playlist_total'):
+                        download.progress = (d.get('playlist_index', d.get('playlist_total')) / d['playlist_total']) * 100
+                    else:
+                        download.progress = 100
                     if 'filename' in d:
                         download.filename = d['filename']
                     # Update title to show the saved filename for clarity on file location
