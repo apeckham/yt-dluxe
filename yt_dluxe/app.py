@@ -231,7 +231,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--download-dir', default='.', help='Directory to save downloads (default: current directory)')
-    parser.add_argument('--port', type=int, default=5050, help='Port to run the server on (default: 5050)')
+    parser.add_argument('--port', type=int, default=5051, help='Port to run the server on (default: 5051)')
     parser.add_argument('--host', default='0.0.0.0', help='Host to run the server on (default: 0.0.0.0)')
     parser.add_argument('--workers', type=int, default=3, help='Number of concurrent downloads (default: 3)')
     args = parser.parse_args()
