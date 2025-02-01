@@ -4,8 +4,10 @@ import threading
 import os
 import queue
 import sys
+import logging
 from urllib.parse import urlparse
 from datetime import datetime
+import uuid
 
 # Create a class to hold application state
 class DownloadManager:
@@ -31,6 +33,7 @@ class DownloadManager:
             if download is None:
                 break
             
+            logging.info("Starting download for %s", download.url)
             try:
                 download.status = "downloading"
                 with self.active_downloads_lock:
@@ -93,7 +96,7 @@ class DownloadManager:
                     download.progress = 100
 
 # Create Flask app factory
-def create_app(download_manager):
+def create_app(download_manager, server_start_time):
     app = Flask(__name__, static_folder='static', static_url_path='/static')
     
     @app.route('/')
@@ -156,6 +159,24 @@ def create_app(download_manager):
             download_manager.download_history.clear()
         return jsonify({'message': 'History cleared'})
 
+    @app.route('/retry', methods=['POST'])
+    def retry_failed_downloads():
+        retried = []
+        with download_manager.history_lock:
+            for download in download_manager.download_history:
+                if download.status == "error":
+                    download.status = "queued"
+                    download.error = None
+                    download.timestamp = datetime.now().isoformat()
+                    download_manager.download_queue.put(download)
+                    retried.append(download.id)
+        return jsonify({'message': 'Retried failed downloads', 'retried': retried})
+        
+    @app.route('/health')
+    def health():
+        uptime = (datetime.now() - server_start_time).total_seconds()
+        return jsonify({'status': 'ok', 'uptime': uptime})
+
     return app
 
 def validate_url(url):
@@ -172,7 +193,7 @@ class Download:
         self.progress = 0
         self.status = "queued"
         self.title = None
-        self.id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.id = uuid.uuid4().hex
         self.error = None
         self.timestamp = datetime.now().isoformat()
 
@@ -185,6 +206,7 @@ def main():
     parser.add_argument('--host', default='0.0.0.0', help='Host to run the server on (default: 0.0.0.0)')
     parser.add_argument('--workers', type=int, default=3, help='Number of concurrent downloads (default: 3)')
     args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO)
 
     download_manager = DownloadManager(
         download_dir=args.download_dir,
@@ -194,7 +216,13 @@ def main():
     download_manager.start_workers()
     
     app = create_app(download_manager)
-    app.run(debug=False, port=args.port, host=args.host)
+    try:
+        app.run(debug=False, port=args.port, host=args.host)
+    finally:
+        for _ in range(download_manager.max_concurrent_downloads):
+            download_manager.download_queue.put(None)
+        for worker in download_manager.worker_threads:
+            worker.join()
 
 if __name__ == '__main__':
     main()
