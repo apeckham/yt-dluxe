@@ -58,6 +58,14 @@ class DownloadManager:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(download.url, download=False)
                     download.title = info.get('title')  # Set title before download starts
+                    if "list=" in download.url or "youtube.com/playlist" in download.url:
+                        ydl.params['outtmpl'] = os.path.join(self.download_dir, '%(uploader)s', '%(playlist_index)s - %(title)s.%(ext)s')
+                        ydl.params['yesplaylist'] = True
+                    elif any(x in download.url for x in ['youtube.com/channel', 'youtube.com/user', 'youtube.com/c/']):
+                        ydl.params['outtmpl'] = os.path.join(self.download_dir, '%(uploader)s', '%(upload_date)s - %(title)s.%(ext)s')
+                        ydl.params['yesplaylist'] = True
+                    elif 'entries' in info:
+                        ydl.params['outtmpl'] = os.path.join(self.download_dir, '%(uploader)s', '%(playlist_index)s - %(title)s.%(ext)s')
                     ydl.download([download.url])
                 
                 download.status = "completed"
@@ -215,7 +223,7 @@ def main():
     os.makedirs(download_manager.download_dir, exist_ok=True)
     download_manager.start_workers()
     
-    app = create_app(download_manager)
+    app = create_app(download_manager, datetime.now())
     try:
         app.run(debug=False, port=args.port, host=args.host)
     finally:
