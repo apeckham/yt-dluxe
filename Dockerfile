@@ -17,7 +17,7 @@ RUN pip install --upgrade pip && \
     pip install .
 
 # Expose port 8000 (adjust if needed)
-EXPOSE 8000
+EXPOSE 5050
 
 # Command to run the application
 CMD ["python", "yt_dluxe/app.py"]
