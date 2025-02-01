@@ -58,6 +58,7 @@ class DownloadManager:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(download.url, download=False)
                     download.title = info.get('title')  # Set title before download starts
+                    download.filename = ydl.prepare_filename(info)
                     if "list=" in download.url or "youtube.com/playlist" in download.url:
                         ydl.params['outtmpl'] = os.path.join(self.download_dir, '%(uploader)s', '%(playlist_index)s - %(title)s.%(ext)s')
                         ydl.params['yesplaylist'] = True
@@ -67,8 +68,8 @@ class DownloadManager:
                     elif 'entries' in info:
                         ydl.params['outtmpl'] = os.path.join(self.download_dir, '%(uploader)s', '%(playlist_index)s - %(title)s.%(ext)s')
                     ydl.download([download.url])
-                
-                download.status = "completed"
+                    logging.info("Download finished. File saved to %s", download.filename)
+                    download.status = "completed"
                 
             except Exception as e:
                 download.status = "error"
@@ -85,23 +86,40 @@ class DownloadManager:
                 self.download_queue.task_done()
 
     def _progress_hook(self, d):
-        if d['status'] == 'downloading':
+        if not isinstance(d, dict):
+            return
+        status = d.get('status')
+        if status == 'downloading':
+            info_dict = d.get('info_dict')
+            webpage_url = info_dict.get('webpage_url') if isinstance(info_dict, dict) else None
             with self.active_downloads_lock:
-                download = self.active_downloads.get(d.get('info_dict', {}).get('webpage_url'))
+                download = None
+                if webpage_url:
+                    download = self.active_downloads.get(webpage_url)
+                if not download:
+                    for dl in self.active_downloads.values():
+                        if 'filename' in d and dl.url in d['filename']:
+                            download = dl
+                            break
                 if download:
-                    # Calculate download progress
-                    if 'total_bytes' in d:
-                        download.progress = (d['downloaded_bytes'] / d['total_bytes']) * 100
-                    elif 'total_bytes_estimate' in d:
-                        download.progress = (d['downloaded_bytes'] / d['total_bytes_estimate']) * 100
-                    if not download.title:  # Only set title if not set yet
-                        download.title = d.get('info_dict', {}).get('title')
-        elif d['status'] == 'finished':
+                    total_bytes = d.get('total_bytes') or d.get('total_bytes_estimate')
+                    if total_bytes:
+                        download.progress = (d.get('downloaded_bytes', 0) / total_bytes) * 100
+                    if not download.title and isinstance(info_dict, dict):
+                        download.title = info_dict.get('title')
+        elif status == 'finished':
+            info_dict = d.get('info_dict')
+            webpage_url = info_dict.get('webpage_url') if isinstance(info_dict, dict) else None
             with self.active_downloads_lock:
-                download = self.active_downloads.get(d.get('info_dict', {}).get('webpage_url'))
+                download = self.active_downloads.get(webpage_url)
                 if download:
-                    download.status = "processing"
+                    download.status = "completed"
                     download.progress = 100
+                    if 'filename' in d:
+                        download.filename = d['filename']
+                    # Update title to show the saved filename for clarity on file location
+                    if download.filename:
+                        download.title = os.path.basename(download.filename)
 
 # Create Flask app factory
 def create_app(download_manager, server_start_time):
@@ -141,6 +159,7 @@ def create_app(download_manager, server_start_time):
                 'status': d.status,
                 'title': d.title,
                 'error': d.error,
+                'filename': d.filename,
                 'timestamp': d.timestamp,
                 'active': True
             } for d in download_manager.active_downloads.values()]
@@ -152,6 +171,7 @@ def create_app(download_manager, server_start_time):
                 'status': d.status,
                 'title': d.title,
                 'error': d.error,
+                'filename': d.filename,
                 'timestamp': d.timestamp,
                 'active': False
             } for d in download_manager.download_history]
@@ -203,6 +223,7 @@ class Download:
         self.title = None
         self.id = uuid.uuid4().hex
         self.error = None
+        self.filename = None
         self.timestamp = datetime.now().isoformat()
 
 def main():

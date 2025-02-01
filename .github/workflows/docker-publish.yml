@@ -8,6 +8,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write  # Required for GHCR push
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
