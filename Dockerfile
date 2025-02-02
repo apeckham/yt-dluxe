@@ -7,6 +7,7 @@ ENV PYTHONUNBUFFERED=1
 
 # Set work directory
 WORKDIR /app
+RUN chmod 777 /app
 
 # Install ffmpeg from yt-dlp builds based on architecture
 RUN apt-get update && \

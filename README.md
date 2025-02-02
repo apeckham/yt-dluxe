@@ -20,7 +20,7 @@ You can run YT-DLuxe using Docker with the following command:
 
 ```bash
 mkdir videos
-docker run -p 5051:5051 -v $(pwd)/videos:/downloads ghcr.io/apeckham/yt-dluxe:latest --download-dir=/downloads
+docker run --user $(id -u):$(id -g) -p 5051:5051 -v $(pwd)/videos:/downloads ghcr.io/apeckham/yt-dluxe:latest --download-dir=/downloads
 ```
 
 ## License
