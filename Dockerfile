@@ -37,5 +37,5 @@ RUN pip install --upgrade pip && \
 # Expose port 8000 (adjust if needed)
 EXPOSE 5051
 
-# Command to run the application
-CMD ["python", "yt_dluxe/app.py"]
+# Set the entrypoint to allow passing arguments
+ENTRYPOINT ["python", "yt_dluxe/app.py"]
