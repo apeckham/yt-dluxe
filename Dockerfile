@@ -8,13 +8,20 @@ ENV PYTHONUNBUFFERED=1
 # Set work directory
 WORKDIR /app
 
-# Install ffmpeg from yt-dlp builds
+# Install ffmpeg from yt-dlp builds based on architecture
 RUN apt-get update && \
     apt-get install -y wget xz-utils && \
-    wget https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz && \
-    tar xf ffmpeg-master-latest-linux64-gpl.tar.xz && \
-    cp ffmpeg-master-latest-linux64-gpl/bin/* /usr/local/bin/ && \
-    rm -rf ffmpeg-master-latest-linux64-gpl* && \
+    if [ "$(uname -m)" = "aarch64" ]; then \
+        wget https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz && \
+        tar xf ffmpeg-master-latest-linuxarm64-gpl.tar.xz && \
+        cp ffmpeg-master-latest-linuxarm64-gpl/bin/* /usr/local/bin/ && \
+        rm -rf ffmpeg-master-latest-linuxarm64-gpl*; \
+    else \
+        wget https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz && \
+        tar xf ffmpeg-master-latest-linux64-gpl.tar.xz && \
+        cp ffmpeg-master-latest-linux64-gpl/bin/* /usr/local/bin/ && \
+        rm -rf ffmpeg-master-latest-linux64-gpl*; \
+    fi && \
     apt-get remove -y wget xz-utils && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
